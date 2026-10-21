@@ -1,0 +1,15 @@
+{
+  "repository": "https://github.com/unitreerobotics/unitree_rl_lab",
+  "base_revision": "4960b84732b0c2ec593dccbfe963fda1bcd7b1e3",
+  "apply": "git apply /path/to/g1-hand-positioning-rl/patches/local-code.patch; copy source/, scripts/ and deploy/ into the checkout",
+  "patch_paths": [
+    "deploy/include/FSM/State_RLBase.h",
+    "deploy/robots/g1_29dof/config/config.yaml",
+    "deploy/robots/g1_29dof/main.cpp",
+    "deploy/robots/g1_29dof/src/State_RLBase.cpp",
+    "scripts/list_envs.py",
+    "scripts/mimic/csv_to_npz.py",
+    "source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py",
+    "unitree_rl_lab.sh"
+  ]
+}

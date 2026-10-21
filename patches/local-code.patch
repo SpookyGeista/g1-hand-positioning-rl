@@ -1,0 +1,576 @@
+diff --git a/deploy/include/FSM/State_RLBase.h b/deploy/include/FSM/State_RLBase.h
+index 059a62f..da700b7 100644
+--- a/deploy/include/FSM/State_RLBase.h
++++ b/deploy/include/FSM/State_RLBase.h
+@@ -12,10 +12,15 @@ class State_RLBase : public FSMState
+ public:
+     State_RLBase(int state_mode, std::string state_string);
+     
++    // Minimal, generische enter()-Variante:
++    // verwendet nur die Gains aus dem Env (wie schon vorher für Velocity),
++    // startet dann den Policy-Thread. Keine FixStand-Interpolation o.Ä.
+     void enter()
+     {
+-        // set gain
+-        for (int i = 0; i < env->robot->data.joint_stiffness.size(); ++i)
++        // PD-Gains aus dem IsaacLab-Env in die Motor-CMDs übernehmen.
++        // Das war bereits im ursprünglichen Code für RL-States so angelegt.
++        for (int i = 0; i < env->robot->data.joint_stiffness.size()
++                     && i < lowcmd->msg_.motor_cmd().size(); ++i)
+         {
+             lowcmd->msg_.motor_cmd()[i].kp() = env->robot->data.joint_stiffness[i];
+             lowcmd->msg_.motor_cmd()[i].kd() = env->robot->data.joint_damping[i];
+@@ -24,22 +29,20 @@ public:
+         }
+ 
+         env->robot->update();
+-        // Start policy thread
++
++        // Policy-Thread starten
+         policy_thread_running = true;
+         policy_thread = std::thread([this]{
+             using clock = std::chrono::high_resolution_clock;
+             const std::chrono::duration<double> desiredDuration(env->step_dt);
+             const auto dt = std::chrono::duration_cast<clock::duration>(desiredDuration);
+ 
+-            // Initialize timing
+             auto sleepTill = clock::now() + dt;
+             env->reset();
+ 
+             while (policy_thread_running)
+             {
+                 env->step();
+-
+-                // Sleep
+                 std::this_thread::sleep_until(sleepTill);
+                 sleepTill += dt;
+             }
+@@ -64,3 +67,99 @@ private:
+ };
+ 
+ REGISTER_FSM(State_RLBase)
++
++// ---------------------------------------------------------------------------
++// Auskommentierte Spezial-Variante für den Hand-Halte-Task (HandPosition V2)
++// ---------------------------------------------------------------------------
++//
++// Die folgende Version von enter() arbeitet mit:
++//  - gespeicherten FixStand-Poten (saved_joint_positions)
++//  - policy_joint_ids (nur Teil-DOFs werden von der Policy überschrieben)
++//  - Warmup/Blending zwischen FixStand und Policy-Pose
++//
++// Wenn du das später wieder aktivieren möchtest, kannst du:
++//  1. die Member (saved_joint_positions, policy_joint_ids, warmup_steps, warmup_counter)
++//     wieder in die private-Klasse aufnehmen
++//  2. diese enter()-Implementierung anstelle der obigen minimalen Version nutzen
++//
++/*
++    void enter()
++    {
++        // Warmup-Zähler zurücksetzen (sanfter Übergang bei jedem Eintritt)
++        warmup_counter = 0;
++
++        // Hardcoded FixStand-Positionen aus config.yaml laden (statt aus lowstate)
++        saved_joint_positions.clear();
++        try {
++            auto fixstand_qs = param::config["FSM"]["FixStand"]["qs"].as<std::vector<std::vector<float>>>();
++            if (!fixstand_qs.empty() && fixstand_qs.size() > 1)
++            {
++                // Nehmen die letzte Pose aus FixStand (die Ziel-Pose)
++                saved_joint_positions = fixstand_qs.back();
++            }
++        } catch(const std::exception& e) {
++            // Fallback: Aktuelle Positionen aus lowstate
++            if (lowstate)
++            {
++                auto& motors = lowstate->msg_.motor_state();
++                if (motors.size() > 0)
++                {
++                    saved_joint_positions.resize(motors.size());
++                    for (size_t i = 0; i < motors.size(); ++i)
++                    {
++                        saved_joint_positions[i] = motors[i].q();
++                    }
++                }
++            }
++        }
++        
++        // Policy-Joint-IDs ermitteln (falls vorhanden)
++        policy_joint_ids.clear();
++        YAML::Node actions_cfg = env->cfg["actions"];
++        if (actions_cfg["JointPositionAction"] && !actions_cfg["JointPositionAction"]["joint_ids"].IsNull())
++        {
++            policy_joint_ids = actions_cfg["JointPositionAction"]["joint_ids"].as<std::vector<int>>();
++        }
++        
++        // set gain: RL-DOF-Indizes über joint_ids_map auf SDK-Motor-Indizes mappen
++        auto& joint_ids_map = env->robot->data.joint_ids_map;
++        for (int i = 0; i < env->robot->data.joint_stiffness.size()
++                     && i < static_cast<int>(joint_ids_map.size()); ++i)
++        {
++            int sdk_idx = static_cast<int>(joint_ids_map[i]);
++            if (sdk_idx >= 0 && sdk_idx < static_cast<int>(lowcmd->msg_.motor_cmd().size()))
++            {
++                lowcmd->msg_.motor_cmd()[sdk_idx].kp() = env->robot->data.joint_stiffness[i];
++                lowcmd->msg_.motor_cmd()[sdk_idx].kd() = env->robot->data.joint_damping[i];
++                lowcmd->msg_.motor_cmd()[sdk_idx].dq() = 0;
++                lowcmd->msg_.motor_cmd()[sdk_idx].tau() = 0;
++            }
++        }
++        
++        // FixStand-Positionen sofort in q setzen, bevor die Policy losläuft
++        for (size_t i = 0; i < saved_joint_positions.size()
++                      && i < static_cast<size_t>(lowcmd->msg_.motor_cmd().size()); ++i)
++        {
++            lowcmd->msg_.motor_cmd()[i].q() = saved_joint_positions[i];
++        }
++
++        env->robot->update();
++        // Start policy thread (wie oben)
++        policy_thread_running = true;
++        policy_thread = std::thread([this]{
++            using clock = std::chrono::high_resolution_clock;
++            const std::chrono::duration<double> desiredDuration(env->step_dt);
++            const auto dt = std::chrono::duration_cast<clock::duration>(desiredDuration);
++
++            auto sleepTill = clock::now() + dt;
++            env->reset();
++
++            while (policy_thread_running)
++            {
++                env->step();
++                std::this_thread::sleep_until(sleepTill);
++                sleepTill += dt;
++            }
++        });
++    }
++*/
+diff --git a/deploy/robots/g1_29dof/config/config.yaml b/deploy/robots/g1_29dof/config/config.yaml
+index 8cc97fe..02ad0c6 100644
+--- a/deploy/robots/g1_29dof/config/config.yaml
++++ b/deploy/robots/g1_29dof/config/config.yaml
+@@ -15,6 +15,10 @@ FSM:
+       id: 102
+       type: Mimic
+ 
++    HandPosition:
++      id: 4
++      type: HandPosition
++
+   Passive:
+     transitions: 
+       FixStand: LT + up.on_pressed
+@@ -35,7 +39,8 @@ FSM:
+   FixStand:
+     transitions: 
+       Passive: LT + B.on_pressed
+-      Velocity: RB + X.on_pressed
++      Velocity: LT + right.on_pressed
++      HandPosition: LT(2s) + right.on_pressed
+     kp: [
+       100., 100., 100., 150., 40., 40.,
+       100., 100., 100., 150., 40., 40.,
+@@ -65,7 +70,6 @@ FSM:
+       Passive: LT + B.on_pressed
+       Mimic_Dance_102: LT(2s) + down.on_pressed
+       Mimic_Gangnam_Style: LT(2s) + left.on_pressed
+-
+     policy_dir: config/policy/velocity
+     # policy_dir: ../../../logs/rsl_rl/unitree_g1_29dof_velocity
+   Mimic_Dance_102:
+@@ -87,3 +91,8 @@ FSM:
+     time_start: 5.2
+     time_end: 25.5
+ 
++  HandPosition:
++    transitions:
++      Passive: LT + B.on_pressed
++    policy_dir: config/policy/lifthand/v2
++
+diff --git a/deploy/robots/g1_29dof/main.cpp b/deploy/robots/g1_29dof/main.cpp
+index be40418..afbd1a8 100644
+--- a/deploy/robots/g1_29dof/main.cpp
++++ b/deploy/robots/g1_29dof/main.cpp
+@@ -2,6 +2,7 @@
+ #include "FSM/State_Passive.h"
+ #include "FSM/State_FixStand.h"
+ #include "FSM/State_RLBase.h"
++#include "FSM/State_HandPosition.h"
+ #include "State_Mimic.h"
+ 
+ std::unique_ptr<LowCmd_t> FSMState::lowcmd = nullptr;
+diff --git a/deploy/robots/g1_29dof/src/State_RLBase.cpp b/deploy/robots/g1_29dof/src/State_RLBase.cpp
+index 950df97..2e8839a 100644
+--- a/deploy/robots/g1_29dof/src/State_RLBase.cpp
++++ b/deploy/robots/g1_29dof/src/State_RLBase.cpp
+@@ -30,6 +30,81 @@ REGISTER_OBSERVATION(keyboard_velocity_commands)
+     return cmd;
+ }
+ 
++// Hand target position per Controller-Taste setzen.
++// Voraussetzung: In der deploy.yaml der Hand-Policy gibt es eine Observation
++// "hand_target_position". Diese Funktion überschreibt deren Berechnung und
++// liefert bei bestimmten Gamepad-Tasten feste XYZ-Ziele für die Hand.
++//
++// Mapping:
++//   A.on_pressed -> [0.3, 0.2, 0.25]
++//   B.on_pressed -> [0.2, 0.1, 0.15]
++//   X.on_pressed -> [0.0, 0.0, 0.0] (Reset)
++REGISTER_OBSERVATION(hand_target_position)
++{
++    // Bisheriges Ziel merken, damit es gehalten wird, wenn keine neue Taste gedrückt wird.
++    static std::vector<float> cmd = {0.25f, 0.15f, 0.2f} ; // default values
++
++    // Joystick vom Roboter holen
++    auto* joystick = env->robot->data.joystick;
++    if (joystick != nullptr)
++    {
++        // A: erste Ziel-Pose
++        if (joystick->right.on_pressed)
++        {
++            cmd[0] = 0.5f;
++            cmd[1] = 0.2f;
++            cmd[2] = 0.25f;
++        }
++        // B: zweite Ziel-Pose
++        else if (joystick->down.on_pressed)
++        {
++            cmd[0] = 0.4f;
++            cmd[1] = 0.1f;
++            cmd[2] = 0.15f;
++        }
++        // X: Reset
++        else if (joystick->X.on_pressed)
++        {
++            cmd[0] = 0.25f;
++            cmd[1] = 0.15f;
++            cmd[2] = 0.2f;
++        }
++    }
++
++    return cmd;
++}
++
++// Hand position commands for tracking/publishing
++// Note: This observation needs to be added to deploy.yaml to work properly
++// It will try to call hand_target_position observation if registered
++REGISTER_OBSERVATION(hand_position_commands_for_tracking)
++{
++    std::vector<float> cmd = {0.0f, 0.0f, 0.0f};
++    
++    // Try to call hand_target_position observation if it's registered
++    // Note: hand_target_position is a Python-defined observation, so this may not work
++    // directly. The user should ensure hand_target_position is in the deploy.yaml
++    // observations, and this observation can then extract it from the observation manager
++    try {
++        auto& obs_map = observations_map();
++        if (obs_map.find("hand_target_position") != obs_map.end()) {
++            YAML::Node params;
++            params["command_name"] = "hand_position";
++            auto hand_target = obs_map["hand_target_position"](env, params);
++            if (hand_target.size() >= 3) {
++                cmd[0] = hand_target[0];
++                cmd[1] = hand_target[1];
++                cmd[2] = hand_target[2];
++            }
++        }
++    } catch(const std::exception& e) {
++        // If hand_target_position is not registered or fails, return zeros
++        // This is expected if hand_target_position is Python-only
++    }
++    
++    return cmd;
++}
++
+ }
+ 
+ State_RLBase::State_RLBase(int state_mode, std::string state_string)
+@@ -54,8 +129,80 @@ State_RLBase::State_RLBase(int state_mode, std::string state_string)
+ 
+ void State_RLBase::run()
+ {
++    // Generische, stabile Variante: 1:1-Mapping der Actions über joint_ids_map
+     auto action = env->action_manager->processed_actions();
+-    for(int i(0); i < env->robot->data.joint_ids_map.size(); i++) {
++    for (int i = 0; i < env->robot->data.joint_ids_map.size(); ++i) {
+         lowcmd->msg_.motor_cmd()[env->robot->data.joint_ids_map[i]].q() = action[i];
+     }
+-}
+\ No newline at end of file
++}
++
++/*  Auskommentierte Spezial-Variante für den Hand-Halte-Task (Warmup + FixStand)
++ *
++ *  Wenn du diese Logik später wieder für den Hand-Task aktivieren willst,
++ *  kannst du sie in eine eigene State-Klasse kopieren oder hier selektiv
++ *  nach state_string umschalten.
++ *
++void State_RLBase::run()
++{
++    auto action = env->action_manager->processed_actions();
++
++    auto& joint_ids_map = env->robot->data.joint_ids_map;
++
++    // Sanfter Übergang (Warmup) von FixStand-Position zur Policy-Zielpose
++    float alpha = 1.0f;
++    if (warmup_counter < warmup_steps)
++    {
++        alpha = static_cast<float>(warmup_counter) / static_cast<float>(warmup_steps);
++        warmup_counter++;
++    }
++
++    // Spezifischer Fall (Hand-Policy): JointPositionAction hat explizite joint_ids.
++    if (!policy_joint_ids.empty())
++    {
++        // Zuerst: Alle Joints bekommen ihre gespeicherten Positionen (aus FixStand)
++        for (size_t i = 0; i < saved_joint_positions.size()
++                        && i < static_cast<size_t>(lowcmd->msg_.motor_cmd().size()); ++i)
++        {
++            lowcmd->msg_.motor_cmd()[i].q() = saved_joint_positions[i];
++        }
++        
++        // Dann: Nur Policy-Joints (z.B. linker Arm) bekommen Actions von der Policy
++        // MIT Warmup-Blending: q = q_fixstand + alpha * (q_policy - q_fixstand)
++        int n = std::min(static_cast<int>(action.size()),
++                         static_cast<int>(policy_joint_ids.size()));
++        for (int i = 0; i < n; ++i)
++        {
++            int rl_idx = policy_joint_ids[i];  // RL-DOF-Index
++            if (rl_idx < 0 || rl_idx >= static_cast<int>(joint_ids_map.size()))
++            {
++                continue;
++            }
++            int sdk_idx = static_cast<int>(joint_ids_map[rl_idx]);  // Mapping RL -> SDK
++            if (sdk_idx >= 0 && sdk_idx < static_cast<int>(lowcmd->msg_.motor_cmd().size()))
++            {
++                float q_policy = action[i];
++
++                float q_fix = 0.0f;
++                if (sdk_idx >= 0
++                    && sdk_idx < static_cast<int>(saved_joint_positions.size()))
++                {
++                    q_fix = saved_joint_positions[sdk_idx];
++                }
++
++                float q_blend = q_fix + alpha * (q_policy - q_fix);
++                lowcmd->msg_.motor_cmd()[sdk_idx].q() = q_blend;
++            }
++        }
++    }
++    else
++    {
++        // Standard: Alle Joints bekommen Actions
++        int n = std::min(static_cast<int>(action.size()),
++                         static_cast<int>(joint_ids_map.size()));
++        for (int i = 0; i < n; ++i)
++        {
++            lowcmd->msg_.motor_cmd()[joint_ids_map[i]].q() = action[i];
++        }
++    }
++}
++*/
+\ No newline at end of file
+diff --git a/scripts/list_envs.py b/scripts/list_envs.py
+index 5324af9..5f29c48 100644
+--- a/scripts/list_envs.py
++++ b/scripts/list_envs.py
+@@ -58,7 +58,14 @@ def _walk_packages(
+ 
+ def import_packages():
+     sys.path.insert(0, f"{pathlib.Path(__file__).parent.parent}/source/unitree_rl_lab/unitree_rl_lab/tasks/")
+-    for package in ["locomotion.robots", "mimic.robots"]:
++    # Wichtig: hier alle Robot-Pakete auflisten, damit sie beim Start von train.py
++    # in gymnasium registriert werden und als --task-Choice auftauchen.
++    for package in [
++        "locomotion.robots",
++        "mimic.robots",
++        "hand_positioning.robots",
++        "hand_positioning_V2.robots",
++    ]:
+         package = importlib.import_module(package)
+         for _ in _walk_packages(package.__path__, package.__name__ + "."):
+             pass
+diff --git a/scripts/mimic/csv_to_npz.py b/scripts/mimic/csv_to_npz.py
+index ce4f5bb..7d48a29 100644
+--- a/scripts/mimic/csv_to_npz.py
++++ b/scripts/mimic/csv_to_npz.py
+@@ -60,7 +60,7 @@ from isaaclab.utils.math import axis_angle_from_quat, quat_conjugate, quat_mul,
+ ##
+ # Pre-defined configs
+ ##
+-from unitree_rl_lab.assets.robots.unitree import UNITREE_G1_29DOF_CFG as ROBOT_CFG  # Currently only support G1-29dof
++from unitree_rl_lab.assets.robots.unitree import UNITREE_G1_29DOF_MIMIC_CFG as ROBOT_CFG  # Currently only support G1-29dof
+ 
+ 
+ @configclass
+diff --git a/source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py b/source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py
+index e78413a..9c21f02 100644
+--- a/source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py
++++ b/source/unitree_rl_lab/unitree_rl_lab/assets/robots/unitree.py
+@@ -8,6 +8,7 @@
+ Reference: https://github.com/unitreerobotics/unitree_ros
+ """
+ 
++import math
+ import os
+ 
+ import isaaclab.sim as sim_utils
+@@ -18,7 +19,7 @@ from isaaclab.utils import configclass
+ from unitree_rl_lab.assets.robots import unitree_actuators
+ 
+ UNITREE_MODEL_DIR = "path/to/unitree_model"  # Replace with the actual path to your unitree_model directory
+-UNITREE_ROS_DIR = "path/to/unitree_ros"  # Replace with the actual path to your unitree_ros package
++UNITREE_ROS_DIR = "/home/loya2/unitree_ros"  # Replace with the actual path to your unitree_ros package
+ 
+ 
+ @configclass
+@@ -56,7 +57,7 @@ class UnitreeUrdfFileCfg(sim_utils.UrdfFileCfg):
+         gains=sim_utils.UrdfConverterCfg.JointDriveCfg.PDGainsCfg(stiffness=0, damping=0)
+     )
+     articulation_props = sim_utils.ArticulationRootPropertiesCfg(
+-        enabled_self_collisions=True,
++        enabled_self_collisions=True,  # Enable self-collisions including hand links
+         solver_position_iteration_count=8,
+         solver_velocity_iteration_count=4,
+     )
+@@ -296,12 +297,12 @@ UNITREE_H1_CFG = UnitreeArticulationCfg(
+ )
+ 
+ UNITREE_G1_23DOF_CFG = UnitreeArticulationCfg(
+-    # spawn=UnitreeUrdfFileCfg(
+-    #     asset_path=f"{UNITREE_ROS_DIR}/robots/g1_description/g1_23dof_rev_1_0.urdf",
+-    # ),
+-    spawn=UnitreeUsdFileCfg(
+-        usd_path=f"{UNITREE_MODEL_DIR}/G1/23dof/usd/g1_23dof_rev_1_0/g1_23dof_rev_1_0.usd",
++    spawn=UnitreeUrdfFileCfg(
++        asset_path=f"{UNITREE_ROS_DIR}/robots/g1_description/g1_23dof_rev_1_0.urdf",
+     ),
++   # spawn=UnitreeUsdFileCfg(
++   #     usd_path=f"{UNITREE_MODEL_DIR}/G1/23dof/usd/g1_23dof_rev_1_0/g1_23dof_rev_1_0.usd",
++   # ),
+     init_state=ArticulationCfg.InitialStateCfg(
+         pos=(0.0, 0.0, 0.8),
+         joint_pos={
+@@ -395,12 +396,12 @@ UNITREE_G1_23DOF_CFG = UnitreeArticulationCfg(
+ )
+ 
+ UNITREE_G1_29DOF_CFG = UnitreeArticulationCfg(
+-    # spawn=UnitreeUrdfFileCfg(
+-    #     asset_path=f"{UNITREE_ROS_DIR}/robots/g1_description/g1_29dof_rev_1_0.urdf",
+-    # ),
+-    spawn=UnitreeUsdFileCfg(
+-        usd_path=f"{UNITREE_MODEL_DIR}/G1/29dof/usd/g1_29dof_rev_1_0/g1_29dof_rev_1_0.usd",
++    spawn=UnitreeUrdfFileCfg(
++        asset_path=f"{UNITREE_ROS_DIR}/robots/g1_description/g1_29dof_with_hand_rev_1_0.urdf",
+     ),
++    #spawn=UnitreeUsdFileCfg(
++    #    usd_path=f"{UNITREE_MODEL_DIR}/G1/29dof/usd/g1_29dof_rev_1_0/g1_29dof_rev_1_0.usd",
++    #),
+     init_state=ArticulationCfg.InitialStateCfg(
+         pos=(0.0, 0.0, 0.8),
+         joint_pos={
+@@ -412,8 +413,24 @@ UNITREE_G1_29DOF_CFG = UnitreeArticulationCfg(
+             "left_shoulder_roll_joint": 0.25,
+             "right_shoulder_roll_joint": -0.25,
+             ".*_elbow_joint": 0.97,
+-            "left_wrist_roll_joint": 0.15,
+-            "right_wrist_roll_joint": -0.15,
++            "left_wrist_roll_joint": 0.15 + math.pi / 2,  # Add 90° to make palm horizontal
++            "right_wrist_roll_joint": -0.15 - math.pi / 2,  # Mirror for right hand
++            "right_wrist_yaw_joint": math.pi / 2,  # 90 Grad für trainierte Policy
++            # Hand joints - set initial positions
++            "left_hand_index_0_joint": 0.0,
++            "left_hand_middle_0_joint": 0.0,
++            "left_hand_thumb_0_joint": 0.0,
++            "left_hand_index_1_joint": 0.0,
++            "left_hand_middle_1_joint": 0.0,
++            "left_hand_thumb_1_joint": 0.0,
++            "left_hand_thumb_2_joint": 0.0,
++            "right_hand_index_0_joint": 0.0,
++            "right_hand_middle_0_joint": 0.0,
++            "right_hand_thumb_0_joint": 0.0,
++            "right_hand_index_1_joint": 0.0,
++            "right_hand_middle_1_joint": 0.0,
++            "right_hand_thumb_1_joint": 0.0,
++            "right_hand_thumb_2_joint": 0.0,
+         },
+         joint_vel={".*": 0.0},
+     ),
+@@ -475,6 +492,18 @@ UNITREE_G1_29DOF_CFG = UnitreeArticulationCfg(
+             damping=1.0,
+             armature=0.01,
+         ),
++        "hands": ImplicitActuatorCfg(
++            joint_names_expr=[
++                ".*_hand_index_.*_joint",
++                ".*_hand_middle_.*_joint",
++                ".*_hand_thumb_.*_joint",
++            ],
++            effort_limit_sim=300,
++            velocity_limit_sim=100.0,
++            stiffness={".*": 100.0},
++            damping={".*": 10.0},
++            armature={".*": 0.1},
++        ),
+     },
+     joint_sdk_names=[
+         "left_hip_pitch_joint",
+@@ -506,6 +535,21 @@ UNITREE_G1_29DOF_CFG = UnitreeArticulationCfg(
+         "right_wrist_roll_joint",
+         "right_wrist_pitch_joint",
+         "right_wrist_yaw_joint",
++        # Hand joints
++        "left_hand_index_0_joint",
++        "left_hand_middle_0_joint",
++        "left_hand_thumb_0_joint",
++        "right_hand_index_0_joint",
++        "right_hand_middle_0_joint",
++        "right_hand_thumb_0_joint",
++        "left_hand_index_1_joint",
++        "left_hand_middle_1_joint",
++        "left_hand_thumb_1_joint",
++        "right_hand_index_1_joint",
++        "right_hand_middle_1_joint",
++        "right_hand_thumb_1_joint",
++        "left_hand_thumb_2_joint",
++        "right_hand_thumb_2_joint",
+     ],
+ )
+ 
+@@ -529,12 +573,12 @@ DAMPING_7520_22 = 2.0 * DAMPING_RATIO * ARMATURE_7520_22 * NATURAL_FREQ  # 6.308
+ DAMPING_4010 = 2.0 * DAMPING_RATIO * ARMATURE_4010 * NATURAL_FREQ  # 1.06814150219
+ 
+ UNITREE_G1_29DOF_MIMIC_CFG = UnitreeArticulationCfg(
+-    # spawn=UnitreeUrdfFileCfg(
+-    #     asset_path=f"{UNITREE_ROS_DIR}/robots/g1_description/g1_29dof_rev_1_0.urdf",
+-    # ),
+-    spawn=UnitreeUsdFileCfg(
+-        usd_path=f"{UNITREE_MODEL_DIR}/G1/29dof/usd/g1_29dof_rev_1_0/g1_29dof_rev_1_0.usd",
++    spawn=UnitreeUrdfFileCfg(
++        asset_path=f"{UNITREE_ROS_DIR}/robots/g1_description/g1_29dof_rev_1_0.urdf",
+     ),
++   # spawn=UnitreeUsdFileCfg(
++   #     usd_path=f"{UNITREE_MODEL_DIR}/G1/29dof/usd/g1_29dof_rev_1_0/g1_29dof_rev_1_0.usd",
++   # ),
+     init_state=ArticulationCfg.InitialStateCfg(
+         pos=(0.0, 0.0, 0.76),
+         joint_pos={
+diff --git a/unitree_rl_lab.sh b/unitree_rl_lab.sh
+index 8563ea3..db5f678 100755
+--- a/unitree_rl_lab.sh
++++ b/unitree_rl_lab.sh
+@@ -74,9 +74,13 @@ case "$1" in
+         shift
+         ${python_exe} ${UNITREE_RL_LAB_PATH}/scripts/rsl_rl/play.py "$@"
+         ;;
++    -pc|--play_csv_target_hand)
++        shift
++        ${python_exe} ${UNITREE_RL_LAB_PATH}/scripts/rsl_rl/play_csv_target_hand.py "$@"
++        ;;
+     -t|--train)
+         shift
+-        ${python_exe} ${UNITREE_RL_LAB_PATH}/scripts/rsl_rl/train.py --headless "$@"
++        ${python_exe} ${UNITREE_RL_LAB_PATH}/scripts/rsl_rl/train.py  "$@"
+         ;;
+     *) # unknown option
+         ;;

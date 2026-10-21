@@ -1,0 +1,233 @@
+{
+  "prepared_date": "2026-10-21",
+  "files": [
+    {
+      "path": ".gitignore",
+      "sha256": "09f81f49edc4cea9d07ecee5739802dba8f0e44425b125f5d35a007e35c6669f"
+    },
+    {
+      "path": "LICENCE",
+      "sha256": "ff28cacaef7b9919a0fb905136cf4ccffba5191522bf5d024c4339932c0edc28"
+    },
+    {
+      "path": "README.md",
+      "sha256": "36ee5040e71a9ec00add644c322b58ed31a573a68d1e8150090db84ed0ba1735"
+    },
+    {
+      "path": "UPSTREAM.json",
+      "sha256": "054569391b8ba6a9ab16b79364ea2a686256a0884c35f1edb8e8e1dc5be98b39"
+    },
+    {
+      "path": "deploy/include/FSM/State_HandPosition.h",
+      "sha256": "5b925b594c36e3652b6242bf3976b7036ba43620a2ea6c8f28e1aa1ce8237b05"
+    },
+    {
+      "path": "deploy/robots/g1_29dof/src/State_HandPosition.cpp",
+      "sha256": "0a26bb148d423c48fda5d33bcc4ea2f1e0b576908dcf3a8bcea3e7e358fa8036"
+    },
+    {
+      "path": "patches/local-code.patch",
+      "sha256": "947ff784650ef2d5244bb152c76e87bfd0d01002427a5194c11cd90133a09702"
+    },
+    {
+      "path": "scripts/compute_hand_pose_from_real_csv.py",
+      "sha256": "4a294165b053073320bbd2358c6681e21acd1c110d8594bb794a993c99a8beec"
+    },
+    {
+      "path": "scripts/export_deploy_cfg.py",
+      "sha256": "ae79d4374f632ae777ff5476787f13d870886f7e4a767d1e190aa2bfa895e435"
+    },
+    {
+      "path": "scripts/rsl_rl/play_csv.py",
+      "sha256": "15f1f2ee68fa8466dbf54803dc057b4f56339e0a3c8a6c1f53c063076b3bff43"
+    },
+    {
+      "path": "scripts/rsl_rl/play_csv_target_hand.py",
+      "sha256": "ef3b67d425a59324b74a98cb854ee787d02d28924edbef1d628459f145e3109a"
+    },
+    {
+      "path": "scripts/show_left_palm_position.py",
+      "sha256": "372ce4225bc6fbc6e8bd90b1ebe33b14aff8941887fe26e593cfea5558ff88bf"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/common_config/__init__.py",
+      "sha256": "5c63518d46b1ed38073d95f23fc506284e475d98a46bae5284d329a4e4d849cf"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/common_config/robot_configs.py",
+      "sha256": "167f98ff10e119e4de05a0e178767f2349e093e0605a9c34289df58a54ce5b18"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/common_scene/simple_throw_scene_cfg.py",
+      "sha256": "8a55a1a57391e8a9bca6b4d2b40214d5cb385c8dff28adcfab6cd630a3c62e42"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/g1_tasks/__init__.py",
+      "sha256": "fb63fb7550ed3b4d82e546e3b889626ac9312a4a979b7cee70f7d0a1bc37a192"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/g1_tasks/g1_throw_test/__init__.py",
+      "sha256": "510ee63eca9aa2483a7558694050c48529840dde8cf6ccf6cb68033b673c452f"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/g1_tasks/g1_throw_test/agents/__init__.py",
+      "sha256": "4e86c937d63bd072c061b60b4b36914cbf14d092b71cae28f7827349789a3371"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/g1_tasks/g1_throw_test/agents/rsl_rl_ppo_cfg.py",
+      "sha256": "17203d82061a4ce08e5cefbf77b45443c70f60f15f5bc767f9a6bfff9c0352d4"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/g1_tasks/g1_throw_test/g1_throw_test_env_cfg.py",
+      "sha256": "d53b8ade06857d4eb432183b8489a78937e8a84a8fe5fbf8f16a734a502f1dc1"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/g1_tasks/g1_throw_test/mdp/__init__.py",
+      "sha256": "e6289797bd567ed487c30f67218fcfd6e66fe1d501926a10476802f4bb09dfd7"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/g1_tasks/g1_throw_test/mdp/actions.py",
+      "sha256": "8bf80c6acf88d740ab7668f716397e0520ab1a958b7dd0bf4bf4ee270d7b311e"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/g1_tasks/g1_throw_test/mdp/events.py",
+      "sha256": "d94431646aaa02076981cbe686a8c064ea5d988b0ea38c0315f8d41b36cddbd9"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/g1_tasks/g1_throw_test/mdp/observations.py",
+      "sha256": "8d5d3fa550bf3d3063b825a087cef5e1fab50089aae02da8d113b6f9d1476350"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/g1_tasks/g1_throw_test/mdp/rewards.py",
+      "sha256": "da9ffb6da94c953ded3b9c72ad39e2f84f84bee0cee779e2d1d01df546f9cdf7"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/g1_tasks/g1_throw_test/mdp/terminations.py",
+      "sha256": "c419132741a9743bf6dbea3b3961a9d3b6efb5c3bda6d245e63071c5a63d672b"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning/__init__.py",
+      "sha256": "534eac03a94a531c653ed621777f93d25649782f9ca7cad370e71d6d6cdcb35a"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning/agents/__init__.py",
+      "sha256": "75e8be812910888687b72a0a7e1893eaa4ad0d1d7f51b1e0ffac4fae3993b880"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning/agents/rsl_rl_ppo_cfg.py",
+      "sha256": "47f8237e5087f6c76a4d4fee24d8979461aa338d6ca8782e2f610060f107f7a4"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning/mdp/__init__.py",
+      "sha256": "2a98bd73b7720c87d0c1c2e61a8c9ed2b685e458d80c60a5b1c81904f6540831"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning/mdp/commands/__init__.py",
+      "sha256": "91652398ad8e31941606ea437b864499b5129ccc451c38eaf1face45a3acd2c9"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning/mdp/commands/hand_position_command.py",
+      "sha256": "af3394efbfb4faa661f6c1c6c8711aae3983b1e7a326e7f8e0f5f26187a7c19c"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning/mdp/debug_visualization.py",
+      "sha256": "640735cd95ba971d455260d88112efe00ee55ec604a451ac4ebf3f02808e57c3"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning/mdp/observations.py",
+      "sha256": "c344bea436f16b8e56e88f40c3fa1ba8cb4eb00d017c74c00e6d648b664ef06a"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning/mdp/rewards.py",
+      "sha256": "b05d392fa62f838904ce91a296ee6b3dd1cca59be9bf5c5d880cb2b0bff7546f"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning/mdp/terminations.py",
+      "sha256": "3df1c37740198bba816eae61f65bcda68f91a0091a789c3ecbbf59c22304f31b"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning/robots/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning/robots/g1_29dof/__init__.py",
+      "sha256": "7c48228c5d80e2a87edd8e7dae880d6664ab44e679fd9d5993805c3a6e0ef091"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning/robots/g1_29dof/hand_position_env_cfg.py",
+      "sha256": "f989d16e4224df28e6fd4b51e600ff26f1a314e911d1b8d333abd8d3466393fb"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning V2/mdp/observations.py",
+      "sha256": "c344bea436f16b8e56e88f40c3fa1ba8cb4eb00d017c74c00e6d648b664ef06a"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning V2/mdp/rewards.py",
+      "sha256": "b05d392fa62f838904ce91a296ee6b3dd1cca59be9bf5c5d880cb2b0bff7546f"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning V2/mdp/terminations.py",
+      "sha256": "3df1c37740198bba816eae61f65bcda68f91a0091a789c3ecbbf59c22304f31b"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning V2/robots/g1_29dof/__init__.py",
+      "sha256": "91b8c885a1ed5f609ec062222206849f89858e738bbc097a9b7c2f062a8a73d9"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning V2/robots/g1_29dof/hand_position_env_cfg.py",
+      "sha256": "3a7eff41445ae1aec4bb60038e52bc92ad321d1409b02a705989447609f9136e"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning_V2/__init__.py",
+      "sha256": "534eac03a94a531c653ed621777f93d25649782f9ca7cad370e71d6d6cdcb35a"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning_V2/agents/__init__.py",
+      "sha256": "75e8be812910888687b72a0a7e1893eaa4ad0d1d7f51b1e0ffac4fae3993b880"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning_V2/agents/rsl_rl_ppo_cfg.py",
+      "sha256": "47f8237e5087f6c76a4d4fee24d8979461aa338d6ca8782e2f610060f107f7a4"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning_V2/mdp/__init__.py",
+      "sha256": "2a98bd73b7720c87d0c1c2e61a8c9ed2b685e458d80c60a5b1c81904f6540831"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning_V2/mdp/commands/__init__.py",
+      "sha256": "91652398ad8e31941606ea437b864499b5129ccc451c38eaf1face45a3acd2c9"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning_V2/mdp/commands/hand_position_command.py",
+      "sha256": "af3394efbfb4faa661f6c1c6c8711aae3983b1e7a326e7f8e0f5f26187a7c19c"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning_V2/mdp/debug_visualization.py",
+      "sha256": "b1baac4c1fd7b8d724a9d3ad89789401a3cc7c36b057857759e0903013d3ec76"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning_V2/mdp/observations.py",
+      "sha256": "524f8087224888fe4135ad0ad1b3e066c63c138767e6e680bfcb97bb98e3ab6d"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning_V2/mdp/rewards.py",
+      "sha256": "6f866ae161ff9dfba7640b0c5172b23cfb40e8656d7329cd871bf391698daf46"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning_V2/mdp/terminations.py",
+      "sha256": "c8cac072d7a66ce0f7ea63f7b13a07592951beaa1b506016e676aa955aff6201"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning_V2/robots/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning_V2/robots/g1_29dof/__init__.py",
+      "sha256": "bc30b9ff4e6399f77fa189b0da6a65134aa230b775c455c4e9290b6bdc8acdd3"
+    },
+    {
+      "path": "source/unitree_rl_lab/unitree_rl_lab/tasks/hand_positioning_V2/robots/g1_29dof/hand_position_env_cfg.py",
+      "sha256": "cdb6829305c56f9f28217f9285f88201034470ea12b2c0e149003a81324aa18f"
+    }
+  ]
+}

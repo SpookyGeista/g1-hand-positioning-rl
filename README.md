@@ -2,6 +2,9 @@
 
 RL tasks and deployment extensions for G1 hand positioning: hand-position commands, task termination conditions, PPO configurations, CSV playback, and hand-pose calculation from joint measurements.
 
+
+[Tool guide](docs/TOOLS.md): commands, inputs, outputs, and operating sequence.
+
 ## Initialize the integration
 
 Use an existing Isaac Sim 5.1 / Isaac Lab environment. This repository is an overlay for the Unitree RL Lab revision in `UPSTREAM.json`.
